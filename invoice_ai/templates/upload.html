@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice AI</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 400px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Upload Invoice</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="file" required>
+    <button type="submit">Upload</button>
+</form>
+
+{% if data %}
+<hr>
+
+<h3>Uploaded Invoice</h3>
+<a href="{{ data.file.url }}" target="_blank">
+    Open Invoice PDF
+</a>
+
+<hr>
+<h3>Extracted Fields</h3>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="invoice_id" value="{{ data.id }}">
+
+    <label>Invoice Number</label>
+    <input type="text" name="invoice_number" value="{{ fields.invoice_number }}">
+
+    <label>Date</label>
+    <input type="text" name="date" value="{{ fields.date }}">
+
+    <label>Vendor</label>
+    <input type="text" name="vendor" value="{{ fields.vendor }}">
+
+    <label>Amount</label>
+    <input type="text" name="amount" value="{{ fields.amount }}">
+
+    <button type="submit">Save Changes</button>
+</form>
+
+{% endif %}
+
+</div>
+
+</body>
+</html>
