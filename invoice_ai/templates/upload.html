@@ -12,7 +12,7 @@
             background: white;
             padding: 30px;
             border-radius: 10px;
-            width: 400px;
+            width: min(1050px, 95vw);
             margin: auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
@@ -35,6 +35,96 @@
         button:hover {
             background: #0056b3;
         }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 980px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            background: #fff;
+        }
+        .muted { color: #6b7280; font-size: 12px; }
+
+        .banner {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid;
+            font-size: 14px;
+        }
+        .banner-warn { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+
+        .preview-wrap {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0b1220;
+            border: 1px solid #e5e7eb;
+        }
+        .preview-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .bbox {
+            position: absolute;
+            border: 2px solid rgba(34, 197, 94, 0.95);
+            background: rgba(34, 197, 94, 0.08);
+            box-sizing: border-box;
+            border-radius: 6px;
+        }
+        .bbox.low {
+            border-color: rgba(239, 68, 68, 0.95);
+            background: rgba(239, 68, 68, 0.08);
+        }
+        .bbox .tag {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: rgba(17, 24, 39, 0.92);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.18);
+            white-space: nowrap;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .secondary {
+            background: #111827;
+        }
+        .secondary:hover {
+            background: #0b1220;
+        }
+        .ghost {
+            background: #fff;
+            color: #111827;
+            border: 1px solid #d1d5db;
+        }
+        .ghost:hover {
+            background: #f9fafb;
+        }
     </style>
 </head>
 
@@ -53,32 +143,151 @@
 {% if data %}
 <hr>
 
-<h3>Uploaded Invoice</h3>
-<a href="{{ data.file.url }}" target="_blank">
-    Open Invoice PDF
-</a>
+<div class="grid">
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;">
+            <h3 style="margin:0;">Invoice Preview</h3>
+            <a class="muted" href="{{ data.file.url }}" target="_blank">Open original</a>
+        </div>
 
-<hr>
-<h3>Extracted Fields</h3>
+        {% if warnings %}
+            {% for w in warnings %}
+                <div class="banner banner-warn">{{ w }}</div>
+            {% endfor %}
+        {% endif %}
 
-<form method="POST">
-    {% csrf_token %}
-    <input type="hidden" name="invoice_id" value="{{ data.id }}">
+        {% if preview_data_uri %}
+        <div class="preview-wrap" id="previewWrap" data-img-w="{{ preview_w }}" data-img-h="{{ preview_h }}">
+            <img id="previewImg" src="{{ preview_data_uri }}" alt="Invoice preview">
+            <div class="overlay">
+                {# Green = detected (high confidence), Red = low confidence #}
+                {% if fields_raw %}
+                    {% for key, obj in fields_raw.items %}
+                        {% if obj.value and obj.box %}
+                            <div class="bbox {% if obj.confidence < 0.70 %}low{% endif %}"
+                                 data-x0="{{ obj.box.0 }}"
+                                 data-y0="{{ obj.box.1 }}"
+                                 data-x1="{{ obj.box.2 }}"
+                                 data-y1="{{ obj.box.3 }}">
+                                <div class="tag">{{ key }} · {{ obj.confidence|floatformat:2 }}</div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="muted" style="margin-top:8px;">
+            Green = detected • Red = low confidence
+        </div>
+        {% else %}
+            <div class="muted">Preview not available.</div>
+        {% endif %}
+    </div>
 
-    <label>Invoice Number</label>
-    <input type="text" name="invoice_number" value="{{ fields.invoice_number }}">
+    <div class="card">
+        <h3 style="margin-top:0;">Extracted Fields</h3>
 
-    <label>Date</label>
-    <input type="text" name="date" value="{{ fields.date }}">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="invoice_id" value="{{ data.id }}">
 
-    <label>Vendor</label>
-    <input type="text" name="vendor" value="{{ fields.vendor }}">
+            <label>Invoice Number</label>
+            <input type="text" name="invoice_number" value="{{ fields.invoice_number }}">
 
-    <label>Amount</label>
-    <input type="text" name="amount" value="{{ fields.amount }}">
+            <label>Date</label>
+            <input type="text" name="date" value="{{ fields.date }}">
 
-    <button type="submit">Save Changes</button>
-</form>
+            <label>Vendor</label>
+            <input type="text" name="vendor" value="{{ fields.vendor }}">
+
+            <label>Amount</label>
+            <input type="text" name="amount" value="{{ fields.amount }}">
+
+            <button type="submit">Save Changes</button>
+        </form>
+
+        <hr style="margin:16px 0;">
+
+        <h3 style="margin:0 0 10px 0;">Export + Integration</h3>
+        <div class="actions">
+            <a href="/api/invoice/{{ data.id }}/export/json/" style="text-decoration:none;">
+                <button type="button" class="ghost">Download JSON</button>
+            </a>
+            <a href="/api/invoice/{{ data.id }}/export/csv/" style="text-decoration:none;">
+                <button type="button" class="ghost">Download CSV</button>
+            </a>
+            <button type="button" class="secondary" onclick="simulateErp('SAP')">Simulate SAP export</button>
+            <button type="button" class="secondary" onclick="simulateErp('Excel')">Simulate Excel export</button>
+        </div>
+
+        <pre id="erpOut" style="margin-top:10px; background:#0b1220; color:#e5e7eb; padding:10px; border-radius:10px; overflow:auto; display:none;"></pre>
+    </div>
+</div>
+
+<script>
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+
+  function layoutBoxes() {
+    const wrap = document.getElementById('previewWrap');
+    const img = document.getElementById('previewImg');
+    if (!wrap || !img) return;
+
+    const imgW = parseFloat(wrap.dataset.imgW || '0');
+    const imgH = parseFloat(wrap.dataset.imgH || '0');
+    if (!imgW || !imgH) return;
+
+    const rect = img.getBoundingClientRect();
+    const scaleX = rect.width / imgW;
+    const scaleY = rect.height / imgH;
+
+    wrap.querySelectorAll('.bbox').forEach(el => {
+      const x0 = parseFloat(el.dataset.x0 || '0');
+      const y0 = parseFloat(el.dataset.y0 || '0');
+      const x1 = parseFloat(el.dataset.x1 || '0');
+      const y1 = parseFloat(el.dataset.y1 || '0');
+      const left = x0 * scaleX;
+      const top = y0 * scaleY;
+      const width = Math.max(2, (x1 - x0) * scaleX);
+      const height = Math.max(2, (y1 - y0) * scaleY);
+
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.width = width + 'px';
+      el.style.height = height + 'px';
+    });
+  }
+
+  window.addEventListener('resize', layoutBoxes);
+  window.addEventListener('load', () => {
+    const img = document.getElementById('previewImg');
+    if (img) img.addEventListener('load', layoutBoxes);
+    layoutBoxes();
+  });
+
+  async function simulateErp(target) {
+    const out = document.getElementById('erpOut');
+    out.style.display = 'block';
+    out.textContent = 'Simulating export…';
+
+    const csrftoken = getCookie('csrftoken');
+    const resp = await fetch(`/api/invoice/{{ data.id }}/export/erp/simulate/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken
+      },
+      body: JSON.stringify({ target })
+    });
+
+    const data = await resp.json();
+    out.textContent = JSON.stringify(data, null, 2);
+  }
+</script>
 
 {% endif %}
 

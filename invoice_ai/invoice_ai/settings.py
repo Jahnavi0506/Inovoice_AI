@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'invoice_api',
+    'invoice_api.apps.InvoiceApiConfig',
 ]
 
 MIDDLEWARE = [

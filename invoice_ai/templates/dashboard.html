@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice AI Dashboard</title>
+  <style>
+    body { font-family: Arial; background: #f4f6f8; padding: 40px; }
+    .container { width: min(1100px, 95vw); margin: auto; }
+    .topbar { display:flex; justify-content:space-between; align-items:baseline; gap: 12px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 18px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: 0 0 10px rgba(0,0,0,0.06); }
+    .label { color:#6b7280; font-size: 12px; margin-bottom: 6px; }
+    .value { font-size: 32px; font-weight: 700; color:#111827; letter-spacing: -0.02em; }
+    .sub { color:#6b7280; font-size: 13px; margin-top: 8px; }
+    .pill { display:inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #e5e7eb; color:#111827; background:#fff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h2 style="margin:0;">Dashboard</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="pill">Demo analytics</span>
+        <a href="/api/upload-page/">Back to upload</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Total invoices processed</div>
+        <div class="value">{{ total_invoices|default:120 }}</div>
+        <div class="sub">Across all uploads in this environment</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Average amount</div>
+        <div class="value">
+          ?{% if avg_amount %}{{ avg_amount|floatformat:2 }}{% else %}X{% endif %}
+        </div>
+        <div class="sub">Computed from extracted `amount` values</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Vendors detected</div>
+        <div class="value">{{ vendors_detected|default:25 }}</div>
+        <div class="sub">Distinct `vendor` values found</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

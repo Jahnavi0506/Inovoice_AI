@@ -1,0 +1,12 @@
+django
+djangorestframework
+opencv-python
+pytesseract
+pdf2image
+pillow
+numpy
+reportlab
+pypdf
+transformers
+torch
+torchvision

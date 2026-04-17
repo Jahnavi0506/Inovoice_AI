@@ -17,3 +17,14 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice {self.id}"
+
+
+class InvoiceCorrection(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="corrections")
+    field_name = models.CharField(max_length=64)
+    original_value = models.TextField(null=True, blank=True)
+    corrected_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Correction(invoice={self.invoice_id}, field={self.field_name})"
