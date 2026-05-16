@@ -19,6 +19,14 @@ def _norm_amount(s: str | None) -> str:
     return s.replace(",", "").strip()
 
 
+def _pred_field_value(pred: dict, field: str) -> str | None:
+    v = pred.get(field)
+    if isinstance(v, dict):
+        inner = v.get("value")
+        return None if inner is None else str(inner)
+    return None if v is None else str(v)
+
+
 @dataclass(frozen=True)
 class Score:
     correct: int
@@ -70,10 +78,11 @@ def run_benchmark(*, out_dir: Path, num_formats: int) -> int:
         fields = ["invoice_number", "date", "vendor", "amount"]
         correct = 0
         for f in fields:
+            pred_val = _pred_field_value(pred, f)
             if f == "amount":
-                ok = _norm_amount(pred.get(f)) == _norm_amount(getattr(cse.truth, f))
+                ok = _norm_amount(pred_val) == _norm_amount(getattr(cse.truth, f))
             else:
-                ok = _norm(pred.get(f)) == _norm(getattr(cse.truth, f))
+                ok = _norm(pred_val) == _norm(getattr(cse.truth, f))
             correct += 1 if ok else 0
 
         total = len(fields)

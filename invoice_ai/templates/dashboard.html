@@ -30,21 +30,21 @@
     <div class="grid">
       <div class="card">
         <div class="label">Total invoices processed</div>
-        <div class="value">{{ total_invoices|default:120 }}</div>
+        <div class="value">{{ total_invoices }}</div>
         <div class="sub">Across all uploads in this environment</div>
       </div>
 
       <div class="card">
         <div class="label">Average amount</div>
         <div class="value">
-          ?{% if avg_amount %}{{ avg_amount|floatformat:2 }}{% else %}X{% endif %}
+          {% if avg_amount is not None %}{{ avg_amount|floatformat:2 }}{% else %}—{% endif %}
         </div>
         <div class="sub">Computed from extracted `amount` values</div>
       </div>
 
       <div class="card">
         <div class="label">Vendors detected</div>
-        <div class="value">{{ vendors_detected|default:25 }}</div>
+        <div class="value">{{ vendors_detected }}</div>
         <div class="sub">Distinct `vendor` values found</div>
       </div>
     </div>

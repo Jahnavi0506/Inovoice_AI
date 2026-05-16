@@ -1,49 +1,85 @@
-import cv2
-import pytesseract
-from pdf2image import convert_from_path
-import numpy as np
-from PIL import Image
 import base64
 import io
+import os
 import re
+from pathlib import Path
 from typing import Any, Optional
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+import cv2
+import numpy as np
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
 
-def extract_ocr_data(file_path):
 
-    # 🔥 STEP 1: Handle PDF
+def _configure_tesseract() -> None:
+    cmd = (os.environ.get("TESSERACT_CMD") or "").strip()
+    if cmd:
+        pytesseract.pytesseract.tesseract_cmd = cmd
+        return
+    win = Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+    if win.is_file():
+        pytesseract.pytesseract.tesseract_cmd = str(win)
+
+
+def _poppler_kwargs() -> dict[str, str]:
+    p = (os.environ.get("POPPLER_PATH") or "").strip()
+    if not p:
+        win = Path(r"C:\poppler-25.12.0\Library\bin")
+        if win.is_dir():
+            p = str(win)
+    if p and Path(p).is_dir():
+        return {"poppler_path": p}
+    return {}
+
+
+_configure_tesseract()
+
+
+def _imread_bgr(path: str):
+    """Read image as BGR; works for non-ASCII paths on Windows."""
+    data = np.fromfile(path, dtype=np.uint8)
+    return cv2.imdecode(data, cv2.IMREAD_COLOR)
+
+
+def load_invoice_preview(file_path: str) -> Image.Image:
+    """
+    First-page / single-image preview without running OCR (lighter than extract_ocr_data).
+    """
     if file_path.lower().endswith(".pdf"):
-        images = convert_from_path(
-            file_path,
-            poppler_path=r"C:\poppler-25.12.0\Library\bin"
-        )
+        images = convert_from_path(file_path, first_page=1, last_page=1, **_poppler_kwargs())
+        return images[0]
 
-        # take first page
+    img = _imread_bgr(file_path)
+    if img is None:
+        raise ValueError(f"Could not read image: {file_path}")
+    return Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+
+def extract_ocr_data(file_path: str):
+    if file_path.lower().endswith(".pdf"):
+        images = convert_from_path(file_path, **_poppler_kwargs())
         pil_img = images[0]
-
-        # convert PIL → OpenCV
         img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-
     else:
-        # normal image
-        img = cv2.imread(file_path)
+        img = _imread_bgr(file_path)
+        if img is None:
+            raise ValueError(f"Could not read image: {file_path}")
         pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
-    # 🔍 OCR
     data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
 
     words = []
     boxes = []
 
-    for i in range(len(data['text'])):
-        if data['text'][i].strip() != "":
-            words.append(data['text'][i])
+    for i in range(len(data["text"])):
+        if data["text"][i].strip() != "":
+            words.append(data["text"][i])
 
-            x = data['left'][i]
-            y = data['top'][i]
-            w = data['width'][i]
-            h = data['height'][i]
+            x = data["left"][i]
+            y = data["top"][i]
+            w = data["width"][i]
+            h = data["height"][i]
 
             boxes.append([x, y, x + w, y + h])
 
